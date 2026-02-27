@@ -165,6 +165,147 @@ fastify.get('/api/prompts/:slug', async (req, reply) => {
   return { ...prompt, examples: prompt.examples ? JSON.parse(prompt.examples) : null };
 });
 
+// ====== Auth ======
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'prompthub-secret-key-2026';
+
+const authenticateOptional = async (req) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return null;
+  try {
+    const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
+    return decoded;
+  } catch { return null; }
+};
+
+const authenticateRequired = async (req, reply) => {
+  const user = await authenticateOptional(req);
+  if (!user) {
+    reply.code(401).send({ error: 'Please login first' });
+    return null;
+  }
+  return user;
+};
+
+// Register
+fastify.post('/api/auth/register', async (req, reply) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
+  if (username.length < 2 || username.length > 20) return reply.code(400).send({ error: 'Username must be 2-20 characters' });
+  if (password.length < 6) return reply.code(400).send({ error: 'Password must be at least 6 characters' });
+
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (existing) return reply.code(409).send({ error: 'Username already taken' });
+
+  const hash = bcrypt.hashSync(password, 10);
+  const result = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, hash);
+  const token = jwt.sign({ id: result.lastInsertRowid, username }, JWT_SECRET, { expiresIn: '7d' });
+
+  return { token, user: { id: result.lastInsertRowid, username } };
+});
+
+// Login
+fastify.post('/api/auth/login', async (req, reply) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
+
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    return reply.code(401).send({ error: 'Invalid username or password' });
+  }
+
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  return { token, user: { id: user.id, username: user.username, bio: user.bio } };
+});
+
+// Get current user
+fastify.get('/api/auth/me', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  const dbUser = db.prepare('SELECT id, username, bio, avatar_url, created_at FROM users WHERE id = ?').get(user.id);
+  if (!dbUser) return reply.code(404).send({ error: 'User not found' });
+  return dbUser;
+});
+
+// ====== Favorites ======
+fastify.post('/api/favorites/:promptId', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  try {
+    db.prepare('INSERT OR IGNORE INTO favorites (user_id, prompt_id) VALUES (?, ?)').run(user.id, req.params.promptId);
+    return { ok: true };
+  } catch (err) {
+    return reply.code(400).send({ error: 'Failed to add favorite' });
+  }
+});
+
+fastify.delete('/api/favorites/:promptId', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  db.prepare('DELETE FROM favorites WHERE user_id = ? AND prompt_id = ?').run(user.id, req.params.promptId);
+  return { ok: true };
+});
+
+fastify.get('/api/favorites', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  const favs = db.prepare('SELECT p.*, c.name as category_name, c.icon as category_icon FROM favorites f JOIN prompts p ON f.prompt_id = p.id LEFT JOIN categories c ON p.category_id = c.id WHERE f.user_id = ? ORDER BY f.created_at DESC').all(user.id);
+  return favs;
+});
+
+fastify.get('/api/favorites/check/:promptId', async (req, reply) => {
+  const user = await authenticateOptional(req);
+  if (!user) return { isFavorite: false };
+  const fav = db.prepare('SELECT id FROM favorites WHERE user_id = ? AND prompt_id = ?').get(user.id, req.params.promptId);
+  return { isFavorite: !!fav };
+});
+
+// ====== Reviews ======
+fastify.post('/api/reviews/:promptId', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  const { rating, comment } = req.body || {};
+  if (!rating || rating < 1 || rating > 5) return reply.code(400).send({ error: 'Rating must be 1-5' });
+
+  const existing = db.prepare('SELECT id FROM reviews WHERE user_id = ? AND prompt_id = ?').get(user.id, req.params.promptId);
+  if (existing) return reply.code(409).send({ error: 'You already reviewed this prompt' });
+
+  db.prepare('INSERT INTO reviews (prompt_id, user_id, rating, comment) VALUES (?, ?, ?, ?)').run(req.params.promptId, user.id, rating, comment || '');
+
+  // Update prompt avg rating
+  const stats = db.prepare('SELECT AVG(rating) as avg, COUNT(*) as count FROM reviews WHERE prompt_id = ?').get(req.params.promptId);
+  db.prepare('UPDATE prompts SET avg_rating = ?, rating_count = ? WHERE id = ?').run(stats.avg, stats.count, req.params.promptId);
+
+  return { ok: true };
+});
+
+fastify.get('/api/reviews/:promptId', async (req) => {
+  return db.prepare('SELECT r.*, u.username FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.prompt_id = ? ORDER BY r.created_at DESC').all(req.params.promptId);
+});
+
+// ====== Upload Prompt ======
+fastify.post('/api/prompts', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  const { title, description, content, examples, category_id } = req.body || {};
+  if (!title || !description || !content) return reply.code(400).send({ error: 'Title, description and content required' });
+
+  const slug = title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+
+  const result = db.prepare('INSERT INTO prompts (title, slug, description, content, examples, category_id, creator_id, is_free) VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
+    .run(title, slug, description, content, examples ? JSON.stringify(examples) : null, category_id || null, user.id);
+
+  return { ok: true, id: result.lastInsertRowid, slug };
+});
+
+// My uploads
+fastify.get('/api/my/prompts', async (req, reply) => {
+  const user = await authenticateRequired(req, reply);
+  if (!user) return;
+  return db.prepare('SELECT p.*, c.name as category_name, c.icon as category_icon FROM prompts p LEFT JOIN categories c ON p.category_id = c.id WHERE p.creator_id = ? ORDER BY p.created_at DESC').all(user.id);
+});
+
 // Start server
 const start = async () => {
   try {
