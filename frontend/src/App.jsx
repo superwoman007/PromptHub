@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import './App.css';
+import { Search, ArrowLeft, Copy, Check, Heart, Sparkles, Menu, X, TrendingUp, Star, Eye, LogOut, User } from 'lucide-react';
+import './index.css';
 
 const i18n = {
   zh: {
@@ -11,11 +12,11 @@ const i18n = {
     trending: '全部',
     views: '浏览',
     rating: '评分',
-    back: '← 返回',
-    examples: '💡 使用示例',
-    content: '📝 提示词内容',
-    copy: '📋 复制',
-    copied: '✅ 已复制！',
+    back: '返回',
+    examples: '使用示例',
+    content: '提示词内容',
+    copy: '复制',
+    copied: '已复制',
     categories: '分类浏览',
     noResults: '暂无匹配的提示词',
     input: '输入',
@@ -36,11 +37,11 @@ const i18n = {
     trending: 'All',
     views: 'Views',
     rating: 'Rating',
-    back: '← Back',
-    examples: '💡 Examples',
-    content: '📝 Prompt Content',
-    copy: '📋 Copy',
-    copied: '✅ Copied!',
+    back: 'Back',
+    examples: 'Examples',
+    content: 'Prompt Content',
+    copy: 'Copy',
+    copied: 'Copied',
     categories: 'Browse by Category',
     noResults: 'No matching prompts found',
     input: 'Input',
@@ -152,208 +153,301 @@ function App() {
   const isFav = (id) => favorites.some(f => f.id === id);
 
   return (
-    <>
-      <div className="main"><div className="gradient-bg" /></div>
-
-      <div className="relative z-10 min-h-screen">
-        {/* Nav */}
-        <nav className="flex justify-between items-center w-full px-6 sm:px-16 py-5 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('home')}>
-            <span className="text-3xl">🚀</span>
-            <span className="font-bold text-xl tracking-wide text-gray-900">{t.title}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} className="rounded-full border border-gray-300 bg-white py-1.5 px-4 text-sm font-medium hover:bg-gray-50 transition-all">
-              🌐 {lang === 'zh' ? 'EN' : '中文'}
-            </button>
-            {user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-gray-700">👋 {user.username}</span>
-                <button onClick={handleLogout} className="rounded-full border border-gray-900 bg-gray-900 py-1.5 px-5 text-white text-sm font-medium hover:bg-white hover:text-gray-900 transition-all">
-                  {t.logout}
+    <div className="min-h-screen bg-[#FAF5FF]">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#FAF5FF]/80 backdrop-blur-xl border-b border-purple-100">
+        <div className="max-w-7xl mx-auto px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {view === 'detail' && (
+                <button 
+                  onClick={() => setView('home')} 
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-purple-200 text-purple-800 font-medium hover:bg-purple-50 transition-all duration-200 cursor-pointer"
+                >
+                  <ArrowLeft size={18} />
+                  {t.back}
                 </button>
+              )}
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+                <Sparkles size={32} className="text-[#7C3AED]" />
+                <h1 className="text-2xl font-extrabold text-[#4C1D95] tracking-tight">{t.title}</h1>
               </div>
-            ) : (
-              <button onClick={() => setShowAuth(true)} className="rounded-full border border-gray-900 bg-gray-900 py-1.5 px-5 text-white text-sm font-medium hover:bg-white hover:text-gray-900 transition-all">
-                {t.login}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                className="px-4 py-2 rounded-full bg-white border border-purple-200 text-purple-800 font-medium hover:bg-purple-50 transition-all duration-200"
+              >
+                {lang === 'zh' ? 'EN' : '中文'}
               </button>
-            )}
+
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-purple-800 font-medium">
+                    <User size={20} />
+                    {user.username}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+                  >
+                    <LogOut size={18} />
+                    {t.logout}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuth(true)}
+                  className="px-5 py-2.5 rounded-full bg-[#22C55E] text-white font-bold hover:bg-[#16A34A] transition-all duration-200 hover:shadow-lg"
+                >
+                  {t.login}
+                </button>
+              )}
+            </div>
           </div>
-        </nav>
+        </div>
+      </header>
 
-        {/* Main */}
-        <div className="flex justify-center items-center flex-col max-w-7xl mx-auto sm:px-16 px-6">
-          {view === 'home' && (
-            <>
-              {/* Hero */}
-              <section className="w-full flex flex-col items-center mt-10">
-                <h1 className="mt-5 text-5xl font-extrabold leading-[1.15] text-center sm:text-6xl">
-                  {t.subtitle}
-                  <br />
-                  <span className="orange-gradient">{t.subtitle2}</span>
-                </h1>
-                <p className="mt-5 text-lg text-gray-600 sm:text-xl max-w-2xl text-center">{t.desc}</p>
-              </section>
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        {view === 'home' && (
+          <>
+            {/* Hero */}
+            <div className="text-center mb-16">
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-[#4C1D95] mb-4 leading-tight">
+                {t.subtitle}
+              </h2>
+              <h3 className="text-5xl sm:text-6xl font-black mb-6">
+                <span className="bg-gradient-to-r from-[#7C3AED] via-[#A78BFA] to-[#7C3AED] bg-clip-text text-transparent">
+                  {t.subtitle2}
+                </span>
+              </h3>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">{t.desc}</p>
+            </div>
 
-              {/* Search */}
-              <div className="mt-16 w-full max-w-xl">
+            {/* Search */}
+            <div className="mb-12 max-w-2xl mx-auto">
+              <div className="relative">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
                   placeholder={t.searchPlaceholder}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full rounded-md border border-gray-200 bg-white py-2.5 pl-5 pr-12 text-sm shadow-lg font-medium focus:border-black focus:outline-none"
+                  className="w-full pl-14 pr-5 py-4 bg-white border border-purple-200 rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] transition-all duration-200 shadow-lg"
                 />
               </div>
+            </div>
 
-              {/* Categories */}
-              <div className="mt-10 w-full">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">{t.categories}</h2>
-                <div className="flex gap-3 flex-wrap">
+            {/* Categories */}
+            <div className="mb-12">
+              <h3 className="text-xl font-bold text-[#4C1D95] mb-5 flex items-center gap-2">
+                <TrendingUp size={24} />
+                {t.categories}
+              </h3>
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className={`px-5 py-3 rounded-full font-semibold transition-all duration-200 cursor-pointer ${!selectedCategory ? 'bg-[#7C3AED] text-white shadow-lg' : 'bg-white border border-purple-200 text-purple-800 hover:bg-purple-50'}`}
+                >
+                  {t.trending}
+                </button>
+                {categories.map(cat => (
                   <button
-                    onClick={() => setSelectedCategory(null)}
-                    className={`rounded-full py-2 px-5 text-sm font-medium transition-all ${!selectedCategory ? 'border border-gray-900 bg-gray-900 text-white' : 'border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-900 hover:text-white'}`}
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                    className={`px-5 py-3 rounded-full font-semibold transition-all duration-200 cursor-pointer ${selectedCategory === cat.name ? 'bg-[#7C3AED] text-white shadow-lg' : 'bg-white border border-purple-200 text-purple-800 hover:bg-purple-50'}`}
                   >
-                    🔥 {t.trending}
+                    {cat.icon} {cat.name}
                   </button>
-                  {categories.map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                      className={`rounded-full py-2 px-5 text-sm font-medium transition-all ${selectedCategory === cat.name ? 'border border-gray-900 bg-gray-900 text-white' : 'border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-900 hover:text-white'}`}
-                    >
-                      {cat.icon} {cat.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Prompt Cards */}
-              <div className="mt-10 w-full columns-1 sm:columns-2 xl:columns-3 gap-6 space-y-6 py-8">
-                {filtered.map(prompt => (
-                  <div key={prompt.id} className="prompt-card cursor-pointer" onClick={() => viewPrompt(prompt.slug)}>
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 text-lg">{prompt.title}</h3>
-                        <p className="mt-1 text-xs text-gray-500">{prompt.category_icon} {prompt.category_name}</p>
-                      </div>
-                      {user && (
-                        <button onClick={(e) => { e.stopPropagation(); toggleFavorite(prompt.id); }} className="text-xl transition-transform hover:scale-125">
-                          {isFav(prompt.id) ? '❤️' : '🤍'}
-                        </button>
-                      )}
-                    </div>
-                    <p className="mt-3 text-sm text-gray-600 line-clamp-3">{prompt.description}</p>
-                    <div className="mt-4 flex items-center gap-4 text-xs text-gray-400 font-medium">
-                      <span>👁️ {prompt.view_count}</span>
-                      <span>⭐ {prompt.avg_rating.toFixed(1)}</span>
-                    </div>
-                  </div>
                 ))}
               </div>
+            </div>
+
+            {/* Prompt Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((prompt, idx) => (
+                <div
+                  key={prompt.id}
+                  onClick={() => viewPrompt(prompt.slug)}
+                  className="bg-white rounded-[20px] border border-gray-200 p-6 cursor-pointer hover:border-[#7C3AED] hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-1 transition-all duration-300"
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <div className="flex justify-between items-start gap-4 mb-4">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-gray-900 mb-1">{prompt.title}</h4>
+                      <span className="text-sm text-purple-700 font-medium">{prompt.category_icon} {prompt.category_name}</span>
+                    </div>
+                    {user && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(prompt.id); }}
+                        className="text-xl transition-transform hover:scale-110 cursor-pointer"
+                      >
+                        <Heart size={24} fill={isFav(prompt.id) ? '#EF4444' : 'none'} color={isFav(prompt.id) ? '#EF4444' : '#D1D5DB'} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">{prompt.description}</p>
+                  <div className="flex items-center gap-5 text-sm text-gray-400 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Eye size={16} />
+                      {prompt.view_count}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Star size={16} />
+                      {prompt.avg_rating.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
               {filtered.length === 0 && (
-                <div className="w-full text-center py-20">
+                <div className="col-span-full text-center py-20">
                   <p className="text-xl text-gray-400">{t.noResults}</p>
                 </div>
               )}
-            </>
-          )}
+            </div>
+          </>
+        )}
 
-          {view === 'detail' && selectedPrompt && (
-            <div className="w-full max-w-3xl mt-10">
-              <button onClick={() => setView('home')} className="rounded-full border border-gray-300 bg-white py-1.5 px-5 text-sm font-medium hover:bg-gray-50 transition-all mb-8">
-                {t.back}
-              </button>
-
-              <div className="glassmorphism">
-                <div className="flex justify-between items-start mb-6">
+        {view === 'detail' && selectedPrompt && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-[20px] border border-gray-200 p-8 shadow-lg">
+              <div className="mb-8">
+                <div className="flex justify-between items-start gap-6 mb-6">
                   <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">{selectedPrompt.title}</h1>
-                    <p className="mt-2 text-sm text-gray-500">{selectedPrompt.category_icon} {selectedPrompt.category_name}</p>
+                    <h2 className="text-3xl font-extrabold text-[#4C1D95] mb-2">{selectedPrompt.title}</h2>
+                    <span className="text-purple-700 font-medium">{selectedPrompt.category_icon} {selectedPrompt.category_name}</span>
                   </div>
                   {user && (
-                    <button onClick={() => toggleFavorite(selectedPrompt.id)} className="text-2xl hover:scale-125 transition-transform">
-                      {isFav(selectedPrompt.id) ? '❤️' : '🤍'}
+                    <button
+                      onClick={() => toggleFavorite(selectedPrompt.id)}
+                      className="text-2xl hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <Heart size={28} fill={isFav(selectedPrompt.id) ? '#EF4444' : 'none'} color={isFav(selectedPrompt.id) ? '#EF4444' : '#D1D5DB'} />
                     </button>
                   )}
                 </div>
 
-                <p className="text-gray-600 mb-6">{selectedPrompt.description}</p>
+                <p className="text-gray-600 text-lg mb-6">{selectedPrompt.description}</p>
 
-                <div className="flex gap-4 text-sm text-gray-500 mb-8">
-                  <span className="bg-white/60 px-3 py-1 rounded-full">👁️ {selectedPrompt.view_count} {t.views}</span>
-                  <span className="bg-white/60 px-3 py-1 rounded-full">⭐ {selectedPrompt.avg_rating.toFixed(1)} {t.rating}</span>
+                <div className="flex items-center gap-4 text-sm text-gray-500 mb-8">
+                  <span className="flex items-center gap-1.5 bg-purple-50 px-3 py-1.5 rounded-full">
+                    <Eye size={16} />
+                    {selectedPrompt.view_count} {t.views}
+                  </span>
+                  <span className="flex items-center gap-1.5 bg-purple-50 px-3 py-1.5 rounded-full">
+                    <Star size={16} />
+                    {selectedPrompt.avg_rating.toFixed(1)} {t.rating}
+                  </span>
                 </div>
-
-                {/* Content */}
-                <div className="mb-8">
-                  <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-xl font-bold text-gray-900">{t.content}</h2>
-                    <button onClick={copyContent} className="rounded-full border border-gray-900 bg-gray-900 py-1.5 px-5 text-white text-sm font-medium hover:bg-white hover:text-gray-900 transition-all">
-                      {copyText || t.copy}
-                    </button>
-                  </div>
-                  <pre className="bg-white/60 p-5 rounded-lg text-sm leading-relaxed whitespace-pre-wrap border border-gray-200 font-[Satoshi]">
-                    {selectedPrompt.content}
-                  </pre>
-                </div>
-
-                {/* Examples */}
-                {selectedPrompt.examples && selectedPrompt.examples.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">{t.examples}</h2>
-                    {selectedPrompt.examples.map((ex, i) => (
-                      <div key={i} className="mb-4 p-5 bg-white/60 rounded-lg border border-gray-200">
-                        <p className="text-xs font-bold text-orange-600 mb-1">{t.input}:</p>
-                        <p className="text-sm text-gray-700 mb-3">{ex.input}</p>
-                        <p className="text-xs font-bold text-blue-600 mb-1">{t.output}:</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{ex.output}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <footer className="mt-20 py-8 text-center">
-          <p className="text-sm text-gray-400 font-medium">🚀 PromptHub © 2026 — Open Source AI Prompt Community</p>
-        </footer>
-      </div>
+              {/* Content */}
+              <div className="mb-10">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Sparkles size={24} className="text-[#7C3AED]" />
+                    {t.content}
+                  </h3>
+                  <button
+                    onClick={copyContent}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white font-semibold hover:bg-[#5B21B6] transition-all duration-200 cursor-pointer"
+                  >
+                    {copyText ? <Check size={18} /> : <Copy size={18} />}
+                    {copyText || t.copy}
+                  </button>
+                </div>
+                <pre className="bg-gray-50 p-6 rounded-[20px] border border-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                  {selectedPrompt.content}
+                </pre>
+              </div>
+
+              {/* Examples */}
+              {selectedPrompt.examples && selectedPrompt.examples.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    <Sparkles size={24} className="text-[#7C3AED]" />
+                    {t.examples}
+                  </h3>
+                  {selectedPrompt.examples.map((ex, i) => (
+                    <div key={i} className="mb-5 p-6 bg-purple-50 rounded-[20px] border border-purple-100">
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-[#7C3AED] mb-2">{t.input}:</p>
+                        <p className="text-sm text-gray-800">{ex.input}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#5B21B6] mb-2">{t.output}:</p>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{ex.output}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* Auth Modal */}
       {showAuth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-[20px] p-8 max-w-sm w-full shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold text-gray-900">{authView === 'login' ? t.login : t.register}</h2>
-              <button onClick={() => setShowAuth(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <h2 className="text-2xl font-extrabold text-[#4C1D95]">
+                {authView === 'login' ? t.login : t.register}
+              </h2>
+              <button onClick={() => setShowAuth(false)} className="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">
+                <X size={24} />
+              </button>
             </div>
-            <form onSubmit={handleAuth} className="space-y-4">
+            <form onSubmit={handleAuth} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">{t.username}</label>
-                <input type="text" required value={authForm.username} onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 py-2.5 px-4 text-sm focus:border-black focus:outline-none" />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.username}</label>
+                <input
+                  type="text"
+                  required
+                  value={authForm.username}
+                  onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] transition-all duration-200"
+                />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">{t.password}</label>
-                <input type="password" required value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 py-2.5 px-4 text-sm focus:border-black focus:outline-none" />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.password}</label>
+                <input
+                  type="password"
+                  required
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[#7C3AED] transition-all duration-200"
+                />
               </div>
-              <button type="submit" className="w-full rounded-full bg-gray-900 py-2.5 text-white text-sm font-medium hover:bg-gray-800 transition-all">
+              <button
+                type="submit"
+                className="w-full py-3 rounded-full bg-[#22C55E] text-white font-bold text-base hover:bg-[#16A34A] transition-all duration-200 cursor-pointer"
+              >
                 {t.submit}
               </button>
-              <button type="button" onClick={() => setAuthView(authView === 'login' ? 'register' : 'login')}
-                className="w-full text-sm text-orange-600 font-semibold hover:text-orange-700">
+              <button
+                type="button"
+                onClick={() => setAuthView(authView === 'login' ? 'register' : 'login')}
+                className="w-full text-[#7C3AED] font-semibold text-base hover:text-[#5B21B6] cursor-pointer"
+              >
                 {authView === 'login' ? t.register : t.login}
               </button>
             </form>
           </div>
         </div>
       )}
-    </>
+
+      <footer className="mt-20 py-10 border-t border-purple-100">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-gray-500 font-medium flex items-center justify-center gap-2">
+            <Sparkles size={20} className="text-[#7C3AED]" />
+            PromptHub © 2026 — Open Source AI Prompt Community
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
 
