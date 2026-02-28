@@ -1,0 +1,20 @@
+{
+  "prompts": [
+    {
+      "title": "示例提示词标题",
+      "description": "这是一个示例提示词的描述，简要说明这个提示词的用途和特点",
+      "content": "这是提示词的完整内容。\n\n可以包含多行文本、变量占位符 {variable} 等。\n\n要求：\n1. 第一点要求\n2. 第二点要求",
+      "category_slug": "writing",
+      "examples": [
+        {
+          "input": "示例输入内容",
+          "output": "示例输出内容"
+        },
+        {
+          "input": "第二个示例输入",
+          "output": "第二个示例输出"
+        }
+      ]
+    }
+  ]
+}
