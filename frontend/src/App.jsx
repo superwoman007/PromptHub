@@ -264,10 +264,10 @@ function App() {
   const isFav = (id) => favorites.some(f => f.id === id);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--color-background)' }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-purple-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {view !== 'home' && (
@@ -280,8 +280,10 @@ function App() {
                 </button>
               )}
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-                <Sparkles size={28} className="text-purple-600" />
-                <h1 className="text-xl font-bold text-gray-900">{t.title}</h1>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>
+                  <Sparkles size={24} className="text-white" />
+                </div>
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{t.title}</h1>
               </div>
             </div>
 
@@ -320,7 +322,8 @@ function App() {
               ) : (
                 <button
                   onClick={() => setShowAuth(true)}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg hover:scale-105 transition-all"
+                  className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
+                  style={{ background: 'var(--color-cta)' }}
                 >
                   {t.login}
                 </button>
@@ -330,37 +333,39 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-20">
         {view === 'home' && (
           <>
             {/* Hero */}
-            <div className="text-center mb-12">
-              <h2 className="text-4xl sm:text-5xl font-bold mb-3 bg-gradient-to-r from-gray-900 via-purple-900 to-gray-900 bg-clip-text text-transparent">
+            <div className="text-center mb-16 animate-fade-in">
+              <h2 className="text-5xl sm:text-6xl font-extrabold mb-4" style={{ color: 'var(--color-text)' }}>
                 {t.subtitle}
               </h2>
-              <p className="text-gray-600 text-lg max-w-xl mx-auto">{t.desc}</p>
+              <p className="text-gray-600 text-xl max-w-2xl mx-auto font-medium">{t.desc}</p>
             </div>
 
             {/* Search */}
-            <div className="mb-10 max-w-2xl mx-auto">
+            <div className="mb-12 max-w-2xl mx-auto">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
                 <input
                   type="text"
                   placeholder={t.searchPlaceholder}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm"
+                  className="w-full pl-14 pr-5 py-4 bg-white border-2 border-purple-100 rounded-xl text-base focus:outline-none focus:border-purple-500 transition-all shadow-md hover:shadow-lg"
+                  style={{ fontSize: '16px' }}
                 />
               </div>
             </div>
 
             {/* Categories */}
-            <div className="mb-10">
-              <div className="flex gap-2 flex-wrap justify-center">
+            <div className="mb-16">
+              <div className="flex gap-3 flex-wrap justify-center">
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${!selectedCategory ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
+                  className={`px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${!selectedCategory ? 'text-white shadow-lg scale-105' : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300'}`}
+                  style={!selectedCategory ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' } : {}}
                 >
                   {t.all}
                 </button>
@@ -368,7 +373,8 @@ function App() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedCategory === cat.name ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
+                    className={`px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${selectedCategory === cat.name ? 'text-white shadow-lg scale-105' : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300'}`}
+                    style={selectedCategory === cat.name ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' } : {}}
                   >
                     {cat.icon} {cat.name}
                   </button>
@@ -377,17 +383,19 @@ function App() {
             </div>
 
             {/* Prompt Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((prompt) => (
                 <div
                   key={prompt.id}
                   onClick={() => viewPrompt(prompt.slug)}
-                  className="bg-white rounded-xl border border-gray-200 p-5 cursor-pointer hover:border-purple-500 hover:shadow-lg hover:-translate-y-1 transition-all"
+                  className="bg-white rounded-2xl border-2 border-gray-100 p-6 cursor-pointer hover:border-purple-400 hover:shadow-xl hover:-translate-y-2 transition-all duration-200"
                 >
-                  <div className="flex justify-between items-start gap-3 mb-3">
+                  <div className="flex justify-between items-start gap-3 mb-4">
                     <div className="flex-1">
-                      <h4 className="text-base font-bold text-gray-900 mb-1">{prompt.title}</h4>
-                      <span className="text-xs text-purple-600 font-medium">{prompt.category_icon} {prompt.category_name}</span>
+                      <h4 className="text-lg font-bold text-gray-900 mb-2 hover-color-shift">{prompt.title}</h4>
+                      <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'var(--color-secondary)', color: 'white' }}>
+                        {prompt.category_icon} {prompt.category_name}
+                      </span>
                     </div>
                     {user && (
                       <button
@@ -398,14 +406,14 @@ function App() {
                       </button>
                     )}
                   </div>
-                  <p className="text-gray-600 text-sm line-clamp-2 mb-3">{prompt.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
-                    <span className="flex items-center gap-1">
-                      <Eye size={14} />
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-4 leading-relaxed">{prompt.description}</p>
+                  <div className="flex items-center gap-5 text-sm text-gray-500 font-semibold">
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
+                      <Eye size={16} />
                       {prompt.view_count}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Star size={14} />
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 rounded-lg">
+                      <Star size={16} className="text-yellow-500" />
                       {prompt.avg_rating.toFixed(1)}
                     </span>
                   </div>
@@ -459,9 +467,10 @@ function App() {
                   <h3 className="text-lg font-bold text-gray-900">{t.content}</h3>
                   <button
                     onClick={copyContent}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                    style={{ background: 'var(--color-cta)' }}
                   >
-                    {copyText ? <Check size={16} /> : <Copy size={16} />}
+                    {copyText ? <Check size={18} /> : <Copy size={18} />}
                     {copyText || t.copy}
                   </button>
                 </div>
@@ -522,9 +531,10 @@ function App() {
                   />
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
+                    style={{ background: 'var(--color-cta)' }}
                   >
-                    <Send size={16} />
+                    <Send size={18} />
                     {t.submitReview}
                   </button>
                 </form>
@@ -713,14 +723,15 @@ function App() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+                  className="flex-1 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
+                  style={{ background: 'var(--color-cta)' }}
                 >
                   {t.submit}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowUpload(false)}
-                  className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300 transition-all"
+                  className="px-8 py-3 rounded-xl bg-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-300 transition-all cursor-pointer"
                 >
                   {t.cancel}
                 </button>
@@ -765,14 +776,16 @@ function App() {
               </div>
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+                className="w-full py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
+                style={{ background: 'var(--color-cta)' }}
               >
                 {t.submit}
               </button>
               <button
                 type="button"
                 onClick={() => setAuthView(authView === 'login' ? 'register' : 'login')}
-                className="w-full text-purple-600 font-medium text-sm hover:text-purple-700"
+                className="w-full font-bold text-sm hover:underline cursor-pointer"
+                style={{ color: 'var(--color-primary)' }}
               >
                 {authView === 'login' ? t.register : t.login}
               </button>
@@ -781,10 +794,10 @@ function App() {
         </div>
       )}
 
-      <footer className="mt-16 py-8 border-t border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
-            <Sparkles size={16} className="text-purple-600" />
+      <footer className="mt-20 py-10 border-t-2 border-purple-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-gray-600 font-semibold text-base flex items-center justify-center gap-2">
+            <Sparkles size={20} style={{ color: 'var(--color-primary)' }} />
             PromptHub © 2026 — Open Source AI Prompt Community
           </p>
         </div>
