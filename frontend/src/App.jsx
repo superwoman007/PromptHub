@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Search, ArrowLeft, Copy, Check, Heart, Sparkles, X, Eye, LogOut, User, Star, Upload, MessageSquare, Send } from 'lucide-react';
+import { Search, ArrowLeft, Copy, Check, Heart, Sparkles, X, Eye, LogOut, User, Star, Upload, MessageSquare, Send, Moon, Sun } from 'lucide-react';
 import './index.css';
 
 const i18n = {
   zh: {
     title: 'PromptHub',
-    subtitle: '发现优质 AI 提示词',
-    desc: '开源社区，分享创意提示词，让 AI 更懂你',
-    searchPlaceholder: '���索提示词...',
+    subtitle: '发现并分享优质 AI 提示词',
+    desc: '开源社区驱动的提示词分享平台',
+    searchPlaceholder: '搜索提示词...',
     all: '全部',
     views: '浏览',
     rating: '评分',
@@ -21,7 +21,7 @@ const i18n = {
     output: '输出',
     login: '登录',
     register: '注册',
-    logout: '退出',
+    logout: '��出',
     username: '用户名',
     password: '密码',
     submit: '确认',
@@ -44,11 +44,17 @@ const i18n = {
     exampleInput: '示例输入',
     exampleOutput: '示例输出',
     cancel: '取消',
+    browsePrompts: '浏览提示词',
+    uploadPrompt: '发布提示词',
+    highlighted: '精选',
+    popular: '热门',
+    highlightedDesc: '社区精选的优质提示词',
+    popularDesc: '最受欢迎的提示词',
   },
   en: {
     title: 'PromptHub',
-    subtitle: 'Discover Quality AI Prompts',
-    desc: 'Open-source community for creative prompts',
+    subtitle: 'Discover and Share Quality AI Prompts',
+    desc: 'Open-source community-driven prompt sharing platform',
     searchPlaceholder: 'Search prompts...',
     all: 'All',
     views: 'Views',
@@ -86,6 +92,12 @@ const i18n = {
     exampleInput: 'Example Input',
     exampleOutput: 'Example Output',
     cancel: 'Cancel',
+    browsePrompts: 'Browse Prompts',
+    uploadPrompt: 'Publish Prompt',
+    highlighted: 'Highlighted',
+    popular: 'Popular',
+    highlightedDesc: 'Community-curated quality prompts',
+    popularDesc: 'Most popular prompts',
   },
 };
 
@@ -99,150 +111,146 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [copyText, setCopyText] = useState('');
   const [user, setUser] = useState(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authView, setAuthView] = useState('login');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
-  const [favorites, setFavorites] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
-  const [showUpload, setShowUpload] = useState(false);
-  const [uploadForm, setUploadForm] = useState({ title: '', description: '', content: '', category_id: '', examples: [] });
-  const [myUploads, setMyUploads] = useState([]);
-  const [centerTab, setCenterTab] = useState('uploads');
+  const [userRating, setUserRating] = useState(0);
+  const [userComment, setUserComment] = useState('');
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    content: '',
+    category_id: '',
+    examples: [],
+  });
+  const [theme, setTheme] = useState('light');
+
   const t = i18n[lang];
 
   useEffect(() => {
-    fetchData();
-    const token = localStorage.getItem('ph_token');
-    const u = localStorage.getItem('ph_user');
-    if (token && u) { 
-      setUser(JSON.parse(u)); 
-      fetchFavorites(token);
-      fetchMyUploads(token);
-    }
+    fetchPrompts();
+    fetchCategories();
   }, []);
 
-  const fetchData = async () => {
+  const fetchPrompts = async () => {
     try {
-      const [c, p] = await Promise.all([
-        fetch('http://localhost:3001/api/categories'),
-        fetch('http://localhost:3001/api/prompts'),
-      ]);
-      setCategories(await c.json());
-      setPrompts(await p.json());
-    } catch (e) { console.error(e); }
+      const res = await fetch('http://localhost:3001/api/prompts');
+      const data = await res.json();
+      setPrompts(data);
+    } catch (err) {
+      console.error('Failed to fetch prompts:', err);
+    }
   };
 
-  const fetchFavorites = async (token) => {
+  const fetchCategories = async () => {
     try {
-      const r = await fetch('http://localhost:3001/api/favorites', { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) setFavorites(await r.json());
-    } catch (e) { console.error(e); }
+      const res = await fetch('http://localhost:3001/api/categories');
+      const data = await res.json();
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
   };
 
-  const fetchMyUploads = async (token) => {
-    try {
-      const r = await fetch('http://localhost:3001/api/my/prompts', { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) setMyUploads(await r.json());
-    } catch (e) { console.error(e); }
-  };
-
-  const fetchReviews = async (promptId) => {
-    try {
-      const r = await fetch(`http://localhost:3001/api/reviews/${promptId}`);
-      if (r.ok) setReviews(await r.json());
-    } catch (e) { console.error(e); }
-  };
-
-  const viewPrompt = async (slug) => {
-    const r = await fetch(`http://localhost:3001/api/prompts/${slug}`);
-    const prompt = await r.json();
-    setSelectedPrompt(prompt);
-    fetchReviews(prompt.id);
-    setView('detail');
-    window.scrollTo(0, 0);
-  };
-
-  const copyContent = async () => {
-    await navigator.clipboard.writeText(selectedPrompt.content);
-    setCopyText(t.copied);
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopyText(text);
     setTimeout(() => setCopyText(''), 2000);
-  };
-
-  const toggleFavorite = async (id) => {
-    if (!user) { setShowAuth(true); return; }
-    const token = localStorage.getItem('ph_token');
-    const isFav = favorites.some(f => f.id === id);
-    await fetch(`http://localhost:3001/api/favorites/${id}`, {
-      method: isFav ? 'DELETE' : 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    fetchFavorites(token);
   };
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    const r = await fetch(`http://localhost:3001/api/auth/${authView === 'login' ? 'login' : 'register'}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(authForm)
-    });
-    if (r.ok) {
-      const d = await r.json();
-      localStorage.setItem('ph_token', d.token);
-      localStorage.setItem('ph_user', JSON.stringify(d.user));
-      setUser(d.user);
-      setShowAuth(false);
-      fetchFavorites(d.token);
-      fetchMyUploads(d.token);
+    const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    try {
+      const res = await fetch(`http://localhost:3001${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authForm),
+      });
+      const data = await res.json();
+      if (data.token) {
+        setUser({ ...data.user, token: data.token });
+        setShowAuthModal(false);
+        setAuthForm({ username: '', password: '' });
+      }
+    } catch (err) {
+      console.error('Auth failed:', err);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('ph_token');
-    localStorage.removeItem('ph_user');
     setUser(null);
-    setFavorites([]);
-    setMyUploads([]);
+    setView('home');
   };
 
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) { setShowAuth(true); return; }
-    const token = localStorage.getItem('ph_token');
-    const r = await fetch(`http://localhost:3001/api/reviews/${selectedPrompt.id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(reviewForm)
-    });
-    if (r.ok) {
-      setReviewForm({ rating: 5, comment: '' });
-      fetchReviews(selectedPrompt.id);
-      // Refresh prompt to update avg rating
-      const pr = await fetch(`http://localhost:3001/api/prompts/${selectedPrompt.slug}`);
-      setSelectedPrompt(await pr.json());
+  const viewPrompt = async (slug) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/prompts/${slug}`);
+      const data = await res.json();
+      setSelectedPrompt(data);
+      setView('detail');
+      window.scrollTo(0, 0);
+    } catch (err) {
+      console.error('Failed to fetch prompt:', err);
+    }
+  };
+
+  const handleRatingSubmit = async () => {
+    if (!user || !selectedPrompt || userRating === 0) return;
+    try {
+      await fetch('http://localhost:3001/api/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          prompt_id: selectedPrompt.id,
+          rating: userRating,
+          comment: userComment,
+        }),
+      });
+      setUserRating(0);
+      setUserComment('');
+      const res = await fetch(`http://localhost:3001/api/prompts/${selectedPrompt.id}`);
+      const updated = await res.json();
+      setSelectedPrompt(updated);
+    } catch (err) {
+      console.error('Failed to submit rating:', err);
     }
   };
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!user) { setShowAuth(true); return; }
-    const token = localStorage.getItem('ph_token');
-    const r = await fetch('http://localhost:3001/api/prompts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(uploadForm)
-    });
-    if (r.ok) {
-      setShowUpload(false);
-      setUploadForm({ title: '', description: '', content: '', category_id: '', examples: [] });
-      fetchData();
-      fetchMyUploads(token);
+    if (!user) return;
+    try {
+      await fetch('http://localhost:3001/api/prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify(uploadForm),
+      });
+      setUploadForm({
+        title: '',
+        description: '',
+        content: '',
+        category_id: '',
+        examples: [],
+      });
+      setView('home');
+      fetchPrompts();
+    } catch (err) {
+      console.error('Failed to upload prompt:', err);
     }
   };
 
   const addExample = () => {
-    setUploadForm({ ...uploadForm, examples: [...uploadForm.examples, { input: '', output: '' }] });
+    setUploadForm({
+      ...uploadForm,
+      examples: [...uploadForm.examples, { input: '', output: '' }],
+    });
   };
 
   const updateExample = (index, field, value) => {
@@ -252,556 +260,469 @@ function App() {
   };
 
   const removeExample = (index) => {
-    setUploadForm({ ...uploadForm, examples: uploadForm.examples.filter((_, i) => i !== index) });
+    setUploadForm({
+      ...uploadForm,
+      examples: uploadForm.examples.filter((_, i) => i !== index),
+    });
   };
 
-  const filtered = prompts.filter(p => {
-    const ms = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
-    const mc = !selectedCategory || p.category_name === selectedCategory;
-    return ms && mc;
+  const filteredPrompts = prompts.filter((p) => {
+    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = !selectedCategory || p.category_id === selectedCategory;
+    return matchSearch && matchCategory;
   });
 
-  const isFav = (id) => favorites.some(f => f.id === id);
+  const highlightedPrompts = filteredPrompts.filter(p => p.avg_rating >= 4.5).slice(0, 6);
+  const popularPrompts = filteredPrompts.sort((a, b) => b.views - a.views).slice(0, 6);
 
-  return (
-    <div className="min-h-screen" style={{ background: 'var(--color-background)' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-purple-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {view !== 'home' && (
-                <button 
-                  onClick={() => setView('home')} 
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-                >
-                  <ArrowLeft size={16} />
-                  {t.back}
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  // Navigation Bar Component (ClawHub style)
+  const NavBar = () => (
+    <nav className="nav-bar">
+      <div className="nav-container">
+        <div className="nav-left">
+          <div className="nav-logo" onClick={() => setView('home')}>
+            <Sparkles size={24} />
+            <span>{t.title}</span>
+          </div>
+          <div className="nav-links">
+            <button onClick={() => setView('home')} className={view === 'home' ? 'active' : ''}>
+              {t.browsePrompts}
+            </button>
+            {user && (
+              <>
+                <button onClick={() => setView('upload')} className={view === 'upload' ? 'active' : ''}>
+                  {t.upload}
                 </button>
-              )}
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>
-                  <Sparkles size={24} className="text-white" />
-                </div>
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{t.title}</h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-                className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-              >
-                {lang === 'zh' ? 'EN' : '中文'}
-              </button>
-
-              {user ? (
-                <>
-                  <button
-                    onClick={() => setShowUpload(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-                  >
-                    <Upload size={16} />
-                    {t.upload}
-                  </button>
-                  <button
-                    onClick={() => setView('center')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-                  >
-                    <User size={16} />
-                    {user.username}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-                  >
-                    <LogOut size={16} />
-                    {t.logout}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setShowAuth(true)}
-                  className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
-                  style={{ background: 'var(--color-cta)' }}
-                >
-                  {t.login}
+                <button onClick={() => setView('center')} className={view === 'center' ? 'active' : ''}>
+                  {t.myCenter}
                 </button>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
-      </header>
+        <div className="nav-right">
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <button className="lang-toggle" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
+            {lang === 'zh' ? 'EN' : '中'}
+          </button>
+          {user ? (
+            <button className="nav-user" onClick={handleLogout}>
+              <User size={18} />
+              <span>{user.username}</span>
+              <LogOut size={16} />
+            </button>
+          ) : (
+            <button className="nav-login" onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}>
+              {t.login}
+            </button>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-20">
-        {view === 'home' && (
-          <>
-            {/* Hero */}
-            <div className="text-center mb-16 animate-fade-in">
-              <h2 className="text-5xl sm:text-6xl font-extrabold mb-4" style={{ color: 'var(--color-text)' }}>
-                {t.subtitle}
-              </h2>
-              <p className="text-gray-600 text-xl max-w-2xl mx-auto font-medium">{t.desc}</p>
+  // Hero Section (ClawHub style)
+  const Hero = () => (
+    <div className="hero">
+      <div className="hero-content">
+        <h1 className="hero-title">{t.subtitle}</h1>
+        <p className="hero-desc">{t.desc}</p>
+        <div className="hero-actions">
+          {user && (
+            <button className="btn-primary" onClick={() => setView('upload')}>
+              <Upload size={20} />
+              {t.uploadPrompt}
+            </button>
+          )}
+          <button className="btn-secondary" onClick={() => setView('home')}>
+            {t.browsePrompts}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Prompt Card Component (ClawHub style)
+  const PromptCard = ({ prompt, highlighted }) => (
+    <div className="prompt-card" onClick={() => viewPrompt(prompt.slug)}>
+      {highlighted && <span className="card-badge">{t.highlighted}</span>}
+      <div className="card-header">
+        <span className="card-icon">{prompt.category_icon}</span>
+        <span className="card-category">{prompt.category_name}</span>
+      </div>
+      <h3 className="card-title">{prompt.title}</h3>
+      <p className="card-desc">{prompt.description}</p>
+      <div className="card-footer">
+        <div className="card-stats">
+          <span><Eye size={14} /> {prompt.views}</span>
+          <span><Star size={14} /> {prompt.avg_rating?.toFixed(1) || 'N/A'}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Home View
+  const HomeView = () => (
+    <div className="home-view">
+      <Hero />
+      
+      {/* Search Bar */}
+      <div className="search-section">
+        <div className="search-container">
+          <Search size={20} />
+          <input
+            type="text"
+            placeholder={t.searchPlaceholder}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        <div className="category-filters">
+          <button
+            className={!selectedCategory ? 'active' : ''}
+            onClick={() => setSelectedCategory(null)}
+          >
+            {t.all}
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              className={selectedCategory === cat.id ? 'active' : ''}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              <span>{cat.icon}</span>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Highlighted Section */}
+      {highlightedPrompts.length > 0 && (
+        <div className="section">
+          <div className="section-header">
+            <h2>{t.highlighted}</h2>
+            <p>{t.highlightedDesc}</p>
+          </div>
+          <div className="prompt-grid">
+            {highlightedPrompts.map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} highlighted />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular Section */}
+      <div className="section">
+        <div className="section-header">
+          <h2>{t.popular}</h2>
+          <p>{t.popularDesc}</p>
+        </div>
+        <div className="prompt-grid">
+          {popularPrompts.map((prompt) => (
+            <PromptCard key={prompt.id} prompt={prompt} />
+          ))}
+        </div>
+      </div>
+
+      {/* All Prompts */}
+      {filteredPrompts.length > 0 && (
+        <div className="section">
+          <div className="section-header">
+            <h2>{t.all}</h2>
+          </div>
+          <div className="prompt-grid">
+            {filteredPrompts.map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filteredPrompts.length === 0 && (
+        <div className="empty-state">
+          <p>{t.noResults}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  // Detail View
+  const DetailView = () => {
+    if (!selectedPrompt) return null;
+
+    return (
+      <div className="detail-view">
+        <button className="back-btn" onClick={() => setView('home')}>
+          <ArrowLeft size={20} />
+          {t.back}
+        </button>
+
+        <div className="detail-container">
+          <div className="detail-header">
+            <div className="detail-title-row">
+              <span className="detail-icon">{selectedPrompt.category_icon}</span>
+              <h1>{selectedPrompt.title}</h1>
             </div>
-
-            {/* Search */}
-            <div className="mb-12 max-w-2xl mx-auto">
-              <div className="relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
-                <input
-                  type="text"
-                  placeholder={t.searchPlaceholder}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-14 pr-5 py-4 bg-white border-2 border-purple-100 rounded-xl text-base focus:outline-none focus:border-purple-500 transition-all shadow-md hover:shadow-lg"
-                  style={{ fontSize: '16px' }}
-                />
-              </div>
+            <p className="detail-desc">{selectedPrompt.description}</p>
+            <div className="detail-meta">
+              <span><Eye size={16} /> {selectedPrompt.views} {t.views}</span>
+              <span><Star size={16} /> {selectedPrompt.avg_rating?.toFixed(1) || 'N/A'} {t.rating}</span>
+              <span><MessageSquare size={16} /> {selectedPrompt.ratings?.length || 0} {t.reviews}</span>
             </div>
+          </div>
 
-            {/* Categories */}
-            <div className="mb-16">
-              <div className="flex gap-3 flex-wrap justify-center">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${!selectedCategory ? 'text-white shadow-lg scale-105' : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300'}`}
-                  style={!selectedCategory ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' } : {}}
-                >
-                  {t.all}
-                </button>
-                {categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                    className={`px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${selectedCategory === cat.name ? 'text-white shadow-lg scale-105' : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300'}`}
-                    style={selectedCategory === cat.name ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' } : {}}
-                  >
-                    {cat.icon} {cat.name}
-                  </button>
-                ))}
-              </div>
+          <div className="detail-content">
+            <h3>{t.content}</h3>
+            <div className="content-box">
+              <pre>{selectedPrompt.content}</pre>
+              <button
+                className="copy-btn"
+                onClick={() => handleCopy(selectedPrompt.content)}
+              >
+                {copyText === selectedPrompt.content ? <Check size={18} /> : <Copy size={18} />}
+                {copyText === selectedPrompt.content ? t.copied : t.copy}
+              </button>
             </div>
+          </div>
 
-            {/* Prompt Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((prompt) => (
-                <div
-                  key={prompt.id}
-                  onClick={() => viewPrompt(prompt.slug)}
-                  className="bg-white rounded-2xl border-2 border-gray-100 p-6 cursor-pointer hover:border-purple-400 hover:shadow-xl hover:-translate-y-2 transition-all duration-200"
-                >
-                  <div className="flex justify-between items-start gap-3 mb-4">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-bold text-gray-900 mb-2 hover-color-shift">{prompt.title}</h4>
-                      <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'var(--color-secondary)', color: 'white' }}>
-                        {prompt.category_icon} {prompt.category_name}
-                      </span>
-                    </div>
-                    {user && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(prompt.id); }}
-                        className="transition-transform hover:scale-110"
-                      >
-                        <Heart size={20} fill={isFav(prompt.id) ? '#EF4444' : 'none'} color={isFav(prompt.id) ? '#EF4444' : '#D1D5DB'} />
-                      </button>
-                    )}
+          {selectedPrompt.examples && selectedPrompt.examples.length > 0 && (
+            <div className="detail-examples">
+              <h3>{t.examples}</h3>
+              {selectedPrompt.examples.map((ex, i) => (
+                <div key={i} className="example-item">
+                  <div className="example-block">
+                    <strong>{t.input}:</strong>
+                    <p>{ex.input}</p>
                   </div>
-                  <p className="text-gray-600 text-sm line-clamp-2 mb-4 leading-relaxed">{prompt.description}</p>
-                  <div className="flex items-center gap-5 text-sm text-gray-500 font-semibold">
-                    <span className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
-                      <Eye size={16} />
-                      {prompt.view_count}
-                    </span>
-                    <span className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 rounded-lg">
-                      <Star size={16} className="text-yellow-500" />
-                      {prompt.avg_rating.toFixed(1)}
-                    </span>
+                  <div className="example-block">
+                    <strong>{t.output}:</strong>
+                    <p>{ex.output}</p>
                   </div>
                 </div>
               ))}
-              {filtered.length === 0 && (
-                <div className="col-span-full text-center py-20">
-                  <p className="text-xl text-gray-400">{t.noResults}</p>
-                </div>
-              )}
             </div>
-          </>
-        )}
+          )}
 
-        {view === 'detail' && selectedPrompt && (
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
-              <div className="mb-6">
-                <div className="flex justify-between items-start gap-4 mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedPrompt.title}</h2>
-                    <span className="text-purple-600 font-medium text-sm">{selectedPrompt.category_icon} {selectedPrompt.category_name}</span>
-                  </div>
-                  {user && (
-                    <button
-                      onClick={() => toggleFavorite(selectedPrompt.id)}
-                      className="hover:scale-110 transition-transform"
-                    >
-                      <Heart size={24} fill={isFav(selectedPrompt.id) ? '#EF4444' : 'none'} color={isFav(selectedPrompt.id) ? '#EF4444' : '#D1D5DB'} />
-                    </button>
-                  )}
-                </div>
-
-                <p className="text-gray-600 mb-4">{selectedPrompt.description}</p>
-
-                <div className="flex items-center gap-3 text-sm text-gray-500 mb-6">
-                  <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
-                    <Eye size={14} />
-                    {selectedPrompt.view_count} {t.views}
-                  </span>
-                  <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
-                    <Star size={14} />
-                    {selectedPrompt.avg_rating.toFixed(1)} {t.rating}
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-bold text-gray-900">{t.content}</h3>
-                  <button
-                    onClick={copyContent}
-                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                    style={{ background: 'var(--color-cta)' }}
-                  >
-                    {copyText ? <Check size={18} /> : <Copy size={18} />}
-                    {copyText || t.copy}
-                  </button>
-                </div>
-                <pre className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                  {selectedPrompt.content}
-                </pre>
-              </div>
-
-              {/* Examples */}
-              {selectedPrompt.examples && selectedPrompt.examples.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{t.examples}</h3>
-                  {selectedPrompt.examples.map((ex, i) => (
-                    <div key={i} className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                      <div className="mb-3">
-                        <p className="text-xs font-bold text-purple-700 mb-1">{t.input}:</p>
-                        <p className="text-sm text-gray-800">{ex.input}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-purple-700 mb-1">{t.output}:</p>
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{ex.output}</p>
-                      </div>
-                    </div>
+          {/* Rating Section */}
+          {user && (
+            <div className="rating-section">
+              <h3>{t.rateThis}</h3>
+              <div className="rating-form">
+                <div className="star-rating">
+                  <span>{t.yourRating}:</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={24}
+                      fill={star <= userRating ? '#fbbf24' : 'none'}
+                      stroke={star <= userRating ? '#fbbf24' : '#d1d5db'}
+                      onClick={() => setUserRating(star)}
+                      style={{ cursor: 'pointer' }}
+                    />
                   ))}
                 </div>
-              )}
-            </div>
-
-            {/* Reviews Section */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <MessageSquare size={20} />
-                {t.reviews}
-              </h3>
-
-              {/* Review Form */}
-              {user && (
-                <form onSubmit={handleReviewSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700 mb-3">{t.rateThis}</p>
-                  <div className="flex items-center gap-2 mb-3">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                        className="transition-transform hover:scale-110"
-                      >
-                        <Star size={24} fill={star <= reviewForm.rating ? '#FBBF24' : 'none'} color={star <= reviewForm.rating ? '#FBBF24' : '#D1D5DB'} />
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={reviewForm.comment}
-                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                    placeholder={t.yourComment}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"
-                    rows="3"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
-                    style={{ background: 'var(--color-cta)' }}
-                  >
-                    <Send size={18} />
-                    {t.submitReview}
-                  </button>
-                </form>
-              )}
-
-              {/* Reviews List */}
-              {reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {reviews.map(review => (
-                    <div key={review.id} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900">{review.username}</span>
-                        <div className="flex items-center gap-1">
-                          {[...Array(review.rating)].map((_, i) => (
-                            <Star key={i} size={14} fill="#FBBF24" color="#FBBF24" />
-                          ))}
-                        </div>
-                      </div>
-                      {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
-                      <p className="text-xs text-gray-400 mt-2">{new Date(review.created_at).toLocaleDateString()}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400 text-center py-8">{t.noReviews}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {view === 'center' && user && (
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t.myCenter}</h2>
-              
-              {/* Tabs */}
-              <div className="flex gap-2 mb-6 border-b border-gray-200">
+                <textarea
+                  placeholder={t.yourComment}
+                  value={userComment}
+                  onChange={(e) => setUserComment(e.target.value)}
+                  className="comment-input"
+                />
                 <button
-                  onClick={() => setCenterTab('uploads')}
-                  className={`px-4 py-2 text-sm font-medium transition-all ${centerTab === 'uploads' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
+                  className="btn-primary"
+                  onClick={handleRatingSubmit}
+                  disabled={userRating === 0}
                 >
-                  {t.myUploads} ({myUploads.length})
-                </button>
-                <button
-                  onClick={() => setCenterTab('favorites')}
-                  className={`px-4 py-2 text-sm font-medium transition-all ${centerTab === 'favorites' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
-                >
-                  {t.myFavorites} ({favorites.length})
+                  <Send size={18} />
+                  {t.submitReview}
                 </button>
               </div>
+            </div>
+          )}
 
-              {/* Content */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {centerTab === 'uploads' && myUploads.map(prompt => (
-                  <div
-                    key={prompt.id}
-                    onClick={() => viewPrompt(prompt.slug)}
-                    className="bg-gray-50 rounded-lg border border-gray-200 p-4 cursor-pointer hover:border-purple-500 hover:shadow-md transition-all"
-                  >
-                    <h4 className="text-base font-bold text-gray-900 mb-1">{prompt.title}</h4>
-                    <span className="text-xs text-purple-600 font-medium mb-2 block">{prompt.category_icon} {prompt.category_name}</span>
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">{prompt.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Eye size={12} />{prompt.view_count}</span>
-                      <span className="flex items-center gap-1"><Star size={12} />{prompt.avg_rating.toFixed(1)}</span>
+          {/* Reviews Section */}
+          <div className="reviews-section">
+            <h3>{t.reviews}</h3>
+            {selectedPrompt.ratings && selectedPrompt.ratings.length > 0 ? (
+              <div className="reviews-list">
+                {selectedPrompt.ratings.map((rating) => (
+                  <div key={rating.id} className="review-item">
+                    <div className="review-header">
+                      <span className="review-author">{rating.username}</span>
+                      <div className="review-stars">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={14}
+                            fill={star <= rating.rating ? '#fbbf24' : 'none'}
+                            stroke={star <= rating.rating ? '#fbbf24' : '#d1d5db'}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {centerTab === 'favorites' && favorites.map(prompt => (
-                  <div
-                    key={prompt.id}
-                    onClick={() => viewPrompt(prompt.slug)}
-                    className="bg-gray-50 rounded-lg border border-gray-200 p-4 cursor-pointer hover:border-purple-500 hover:shadow-md transition-all"
-                  >
-                    <h4 className="text-base font-bold text-gray-900 mb-1">{prompt.title}</h4>
-                    <span className="text-xs text-purple-600 font-medium mb-2 block">{prompt.category_icon} {prompt.category_name}</span>
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">{prompt.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Eye size={12} />{prompt.view_count}</span>
-                      <span className="flex items-center gap-1"><Star size={12} />{prompt.avg_rating.toFixed(1)}</span>
-                    </div>
+                    {rating.comment && <p className="review-comment">{rating.comment}</p>}
                   </div>
                 ))}
               </div>
-
-              {centerTab === 'uploads' && myUploads.length === 0 && (
-                <p className="text-gray-400 text-center py-12">{t.noResults}</p>
-              )}
-              {centerTab === 'favorites' && favorites.length === 0 && (
-                <p className="text-gray-400 text-center py-12">{t.noResults}</p>
-              )}
-            </div>
+            ) : (
+              <p className="empty-reviews">{t.noReviews}</p>
+            )}
           </div>
-        )}
+        </div>
+      </div>
+    );
+  };
+
+  // Upload View
+  const UploadView = () => (
+    <div className="upload-view">
+      <h2>{t.upload}</h2>
+      <form onSubmit={handleUploadSubmit} className="upload-form">
+        <div className="form-group">
+          <label>{t.uploadTitle}</label>
+          <input
+            type="text"
+            value={uploadForm.title}
+            onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>{t.uploadDesc}</label>
+          <textarea
+            value={uploadForm.description}
+            onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>{t.uploadContent}</label>
+          <textarea
+            value={uploadForm.content}
+            onChange={(e) => setUploadForm({ ...uploadForm, content: e.target.value })}
+            required
+            rows={8}
+          />
+        </div>
+        <div className="form-group">
+          <label>{t.uploadCategory}</label>
+          <select
+            value={uploadForm.category_id}
+            onChange={(e) => setUploadForm({ ...uploadForm, category_id: e.target.value })}
+            required
+          >
+            <option value="">{t.uploadCategory}</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon} {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>{t.uploadExamples}</label>
+          {uploadForm.examples.map((ex, i) => (
+            <div key={i} className="example-form">
+              <input
+                type="text"
+                placeholder={t.exampleInput}
+                value={ex.input}
+                onChange={(e) => updateExample(i, 'input', e.target.value)}
+              />
+              <textarea
+                placeholder={t.exampleOutput}
+                value={ex.output}
+                onChange={(e) => updateExample(i, 'output', e.target.value)}
+              />
+              <button type="button" onClick={() => removeExample(i)} className="btn-remove">
+                <X size={18} />
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addExample} className="btn-secondary">
+            {t.addExample}
+          </button>
+        </div>
+        <div className="form-actions">
+          <button type="submit" className="btn-primary">{t.submit}</button>
+          <button type="button" onClick={() => setView('home')} className="btn-secondary">{t.cancel}</button>
+        </div>
+      </form>
+    </div>
+  );
+
+  // User Center View
+  const UserCenterView = () => {
+    const myPrompts = prompts.filter(p => p.author_id === user?.id);
+    return (
+      <div className="center-view">
+        <h2>{t.myCenter}</h2>
+        <div className="center-section">
+          <h3>{t.myUploads}</h3>
+          <div className="prompt-grid">
+            {myPrompts.map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Auth Modal
+  const AuthModal = () => (
+    <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => setShowAuthModal(false)}>
+          <X size={24} />
+        </button>
+        <h2>{authMode === 'login' ? t.login : t.register}</h2>
+        <form onSubmit={handleAuth} className="auth-form">
+          <input
+            type="text"
+            placeholder={t.username}
+            value={authForm.username}
+            onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+            required
+          />
+          <input
+            type="password"
+            placeholder={t.password}
+            value={authForm.password}
+            onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+            required
+          />
+          <button type="submit" className="btn-primary">{t.submit}</button>
+        </form>
+        <p className="auth-switch">
+          {authMode === 'login' ? (
+            <span onClick={() => setAuthMode('register')}>{t.register}</span>
+          ) : (
+            <span onClick={() => setAuthMode('login')}>{t.login}</span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`app ${theme}`}>
+      <NavBar />
+      <main className="main-content">
+        {view === 'home' && <HomeView />}
+        {view === 'detail' && <DetailView />}
+        {view === 'upload' && <UploadView />}
+        {view === 'center' && <UserCenterView />}
       </main>
-
-      {/* Upload Modal */}
-      {showUpload && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full shadow-2xl my-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t.upload}</h2>
-              <button onClick={() => setShowUpload(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.uploadTitle}</label>
-                <input
-                  type="text"
-                  required
-                  value={uploadForm.title}
-                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.uploadDesc}</label>
-                <textarea
-                  required
-                  value={uploadForm.description}
-                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  rows="3"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.uploadContent}</label>
-                <textarea
-                  required
-                  value={uploadForm.content}
-                  onChange={(e) => setUploadForm({ ...uploadForm, content: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                  rows="8"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.uploadCategory}</label>
-                <select
-                  value={uploadForm.category_id}
-                  onChange={(e) => setUploadForm({ ...uploadForm, category_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">选择分类</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.uploadExamples}</label>
-                {uploadForm.examples.map((ex, i) => (
-                  <div key={i} className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <input
-                      type="text"
-                      placeholder={t.exampleInput}
-                      value={ex.input}
-                      onChange={(e) => updateExample(i, 'input', e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
-                    />
-                    <textarea
-                      placeholder={t.exampleOutput}
-                      value={ex.output}
-                      onChange={(e) => updateExample(i, 'output', e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      rows="2"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeExample(i)}
-                      className="mt-2 text-xs text-red-600 hover:text-red-700"
-                    >
-                      删除示例
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addExample}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                >
-                  + {t.addExample}
-                </button>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
-                  style={{ background: 'var(--color-cta)' }}
-                >
-                  {t.submit}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowUpload(false)}
-                  className="px-8 py-3 rounded-xl bg-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-300 transition-all cursor-pointer"
-                >
-                  {t.cancel}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Auth Modal */}
-      {showAuth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {authView === 'login' ? t.login : t.register}
-              </h2>
-              <button onClick={() => setShowAuth(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.username}</label>
-                <input
-                  type="text"
-                  required
-                  value={authForm.username}
-                  onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.password}</label>
-                <input
-                  type="password"
-                  required
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl text-white text-sm font-bold hover:shadow-xl transition-all cursor-pointer"
-                style={{ background: 'var(--color-cta)' }}
-              >
-                {t.submit}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthView(authView === 'login' ? 'register' : 'login')}
-                className="w-full font-bold text-sm hover:underline cursor-pointer"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                {authView === 'login' ? t.register : t.login}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <footer className="mt-20 py-10 border-t-2 border-purple-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-gray-600 font-semibold text-base flex items-center justify-center gap-2">
-            <Sparkles size={20} style={{ color: 'var(--color-primary)' }} />
-            PromptHub © 2026 — Open Source AI Prompt Community
-          </p>
-        </div>
-      </footer>
+      {showAuthModal && <AuthModal />}
     </div>
   );
 }
